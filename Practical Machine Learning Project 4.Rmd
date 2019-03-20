@@ -1,0 +1,70 @@
+---
+title: "Practical Machine Learning Project4"
+author: "Rohan Chakravarthy"
+date: "18 February 2019"
+output: html_document
+---
+##Project Background
+##Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+##Setting Work Directory and reading data
+
+```{r P1}
+library(caret)
+library(randomForest)
+library(rpart.plot)
+setwd("E:/Data Science/Practical Machine Learning")
+training_data <- read.csv('pml-training.csv', na.strings = c("NA", "#DIV/0!", ""))
+test_data <- read.csv('pml-testing.csv', na.strings = c("NA", "#DIV/0!", ""))
+````
+
+##Cleaning the Data
+##Data containing N.A. values are filtered out.
+```{r P2}
+clnColumnIndex <- colSums(is.na(training_data))/nrow(training_data) < 0.95
+clean_training_data <- training_data[,clnColumnIndex]
+````
+##Filtered data to be checked for any inconsistencies
+```{r P3}
+colSums(is.na(clean_training_data))/nrow(clean_training_data)
+colSums(is.na(clean_training_data))
+````
+##Columns which are not required will be dropped
+```{r P4}
+clean_training_data <- clean_training_data[,-c(1:7)]
+clean_test_data <- test_data[,-c(1:7)]
+````
+##Slicing the Data into training set and validation set
+```{r P5}
+inTrainIndex <- createDataPartition(clean_training_data$classe, p=0.75)[[1]]
+training_training_data <- clean_training_data[inTrainIndex,]
+training_crossval_data <- clean_training_data[-inTrainIndex,]
+allNames <- names(clean_training_data)
+clean_test_data <- test_data[,allNames[1:52]]
+````
+
+```{r P6}
+decisionTreeMod <- train(classe ~., method='rpart', data=training_training_data)
+decisionTreePrediction <- predict(decisionTreeMod, training_crossval_data)
+confusionMatrix(training_crossval_data$classe, decisionTreePrediction)
+````
+
+## Vizualizing the decision tree
+```{r P7}
+rpart.plot(decisionTreeMod$finalModel)
+````
+##Algorith Random Forest
+````{r P8}
+rfMod <- train(classe ~., method='rf', data=training_training_data, ntree=128)
+rfPrediction <- predict(rfMod, training_crossval_data)
+confusionMatrix(training_crossval_data$classe, rfPrediction)
+````
+
+##Predicting the test set
+````{r P9}
+predict(rfMod, clean_test_data)
+````
+
+##Conclusion
+##We can conclude that the random forest algorithm is much more accurate then the decision tree. 
+
